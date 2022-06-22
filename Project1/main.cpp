@@ -218,7 +218,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	result = device->CreateFence(fenceVal, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 
 	// DirectX初期化処理 ここまで
+	//カメラ初期化
+	float angle = 0.0f;
 
+	XMFLOAT3 scale;
+	XMFLOAT3 rotation;
+	//座標　
+	scale = { 1.0f,1.0f,1.0f };
+	rotation = { 0.0f,0.0f,0.0f };
+	XMFLOAT3 position = { 0.0,0.0,0.0 };
+	
 	// **********************************************
 	// Direct Input 初期化（キー入力）
 
@@ -267,10 +276,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// 頂点データ
 	Vertex vertices[] = {
 		// x      y     z       u     v
-		{{0.4f, 100.0f, 0.0f}, {0.0f, 1.0f}}, // 左下
-		{{0.4f, 0.0f, 0.0f}, {0.0f, 0.0f}}, // 左上
-		{{100.0f, 100.0f, 0.0f}, {1.0f, 1.0f}}, // 右下
-		{{100.0f, 0.7f, 0.0f}, {1.0f, 0.0f}}, // 右上
+		{{-50.0f, -50.0f, 0}, {0.0f, 1.0f}}, // 左下
+		{{-50.0f, 50.0f,0}, {0.0f, 0.0f}}, // 左上
+		{{50.0f, -50.0f, 0}, {1.0f, 1.0f}}, // 右下
+		{{50.0f, 50.0f, 0}, {1.0f, 0.0f}}, // 右上
 	};
 
 
@@ -580,7 +589,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		assert(SUCCEEDED(result));
 			//単位行列
 		constMapTransform->mat = XMMatrixIdentity();
-
+		
 	}
 	// 横方向ピクセル数
 	const size_t textureWidth = 256;
@@ -666,11 +675,55 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			(UINT)img->slicePitch // 1枚サイズ
 		);
 		assert(SUCCEEDED(result));
-		constMapTransform->mat.r[0].m128_f32[0] = 2.0f/window_width;
+	/*	constMapTransform->mat.r[0].m128_f32[0] = 2.0f/window_width;
 		constMapTransform->mat.r[1].m128_f32[1] = -2.0f/window_height;
 		constMapTransform->mat.r[3].m128_f32[0] = -1.0f;
-		constMapTransform->mat.r[3].m128_f32[1] = 1.0f;
+		constMapTransform->mat.r[3].m128_f32[1] = 1.0f;*/
+		constMapTransform->mat = XMMatrixOrthographicOffCenterLH
+		(0, window_width,
+			window_height,0,
+			
+			0.0f,1.0f
+		);
+		/*constMapTransform->mat = XMMatrixPerspectiveFovLH
+		(XMConvertToRadians(45.0f),
+			(float)window_height / window_width,
+			0.1f, 1000.0f
+		);*/
+
 	}
+	//ビュー返還
+		XMMATRIX matprojection= XMMatrixPerspectiveFovLH
+			(XMConvertToRadians(45.0f),
+				(float)window_width /window_height ,
+				0.1f, 1000.0f
+				);
+		constMapTransform->mat = matprojection;	
+	XMMATRIX matView;
+	XMFLOAT3 eye(0, 0, -100);
+	XMFLOAT3 target(0, 0, 0);
+	XMFLOAT3 up(0, 1, 0);
+	matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
+
+	XMMATRIX matworld;
+	//ワールド
+	matworld= constMapTransform->mat = XMMatrixIdentity();
+	//スケール
+	XMMATRIX matScale;
+	matScale = XMMatrixScaling(scale.x, scale.y,scale.z);
+	matworld *= matScale;
+	//回転
+	XMMATRIX matRot;
+	matRot = XMMatrixIdentity();
+	matRot *= XMMatrixRotationZ(rotation.z);
+	matRot *= XMMatrixRotationY(rotation.x);
+	matRot *= XMMatrixRotationX(rotation.y);
+	matworld *= matRot;
+	//平行行列
+	XMMATRIX matTrans;
+	matTrans = XMMatrixTranslation(-50.0f, 0,0);
+	matworld *= matTrans;
+	constMapTransform->mat = matView * matprojection*matworld;
 
 	//// 元データ解放
 	//delete[] imageData;
@@ -804,20 +857,45 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		keyboard->GetDeviceState(sizeof(key), key);
 
 		// 数字の0キーが押されていたら
-		if (key[DIK_0])
-		{
-			OutputDebugStringA("Hit 0\n");  // 出力ウィンドウに「Hit 0」と表示
-		}
+		//if (key[DIK_0])
+		//{
+		//	OutputDebugStringA("Hit 0\n");  // 出力ウィンドウに「Hit 0」と表示
+		//}
 
-		if (key[DIK_A])
+		//if (key[DIK_A])
+		//{
+		//	constMapMaterial->color.x += 0.1f;
+		//}
+		//if (key[DIK_B])
+		//{
+		//	constMapMaterial->color.x -= 0.1f;
+		//}
+		if (key[DIK_D] || key[DIK_A])
 		{
-			constMapMaterial->color.x += 0.1f;
+			if (key[DIK_D]) { angle += XMConvertToRadians(1.0f); }
+			else if (key[DIK_A]) { angle -= XMConvertToRadians(1.0f); }
+			eye.x = -100 * sinf(angle);
+			eye.z = -100 * cosf(angle);
+			matView = XMMatrixLookAtLH(XMLoadFloat3(&eye), XMLoadFloat3(&target), XMLoadFloat3(&up));
 		}
-		if (key[DIK_B])
+		constMapTransform->mat = matView * matprojection* matworld;
+		if (key[DIK_UP] || key[DIK_DOWN] || key[DIK_RIGHT] || key[DIK_LEFT])
 		{
-			constMapMaterial->color.x -= 0.1f;
+			if (key[DIK_UP]) { position.z +=1.0f; }
+			else if (key[DIK_DOWN]) { position.z -= 1.0f; }
+			if (key[DIK_RIGHT]) { position.x += 1.0f; }
+			else	if (key[DIK_LEFT]) { position.x -= 1.0f; }
 		}
-
+		XMMATRIX matTrans;
+		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
+		matworld = XMMatrixIdentity();
+		matworld *= matScale;
+		matworld *= matRot;
+		matworld *= matTrans;
+		
+			
+		constMapTransform->mat = matworld*matView * matprojection  ;
+	
 
 		// *****************************************************
 		// DirectX毎フレーム処理 ここから
