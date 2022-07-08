@@ -310,22 +310,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// インデックスデータ
 	unsigned short indices[] = {
 		0, 1, 2, // 三角形1つ目
-		2, 1, 3, // 三角形2つ目
+		//2, 1, 3, // 三角形2つ目
 		//牛
-		5,4,6,
-		5,6,7,
+		//5,4,6,
+		//5,6,7,
 		//飛騨
-		8,9,10,
-		10,9,11,
+		//8,9,10,
+		//10,9,11,
 		//右
-		13,12,14,
-		13,14,15,
+		//13,12,14,
+		//13,14,15,
 		//↓
-		17,16,18,
-		17,18,19,
+		//17,16,18,
+		//17,18,19,
 		//上
-		20,21,22,
-		22,21,23,
+		//20,21,22,
+		//22,21,23,
 	};
 
 
@@ -621,9 +621,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ConstBufferDataMaterial* constMapMaterial = nullptr;
 	result = constBuffMaterial->Map(0, nullptr, (void**)&constMapMaterial); // マッピング
 	assert(SUCCEEDED(result));
-
+	XMFLOAT4 color=XMFLOAT4(0, 0, 0, 1);
 	// 値を書き込むと自動的に転送される
-	constMapMaterial->color = XMFLOAT4(1, 1, 1, 1);              // RGBAで半透明の赤
+	constMapMaterial->color = XMFLOAT4(0, 1, 0, 1);         
+	// RGBAで半透明の赤
 	//５－２
 	struct ConstBufferDataTransform {
 		XMMATRIX  mat; // 3D変換
@@ -1000,6 +1001,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			if (key[DIK_RIGHT]) { position.x += 1.0f; }
 			else	if (key[DIK_LEFT]) { position.x -= 1.0f; }
 		}
+		color.x += 0.01f;
+
+		constMapMaterial->color = color;
+		
+		
 		XMMATRIX matTrans;
 		matTrans = XMMatrixTranslation(position.x, position.y, position.z);
 		matworld = XMMatrixIdentity();
@@ -1009,7 +1015,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		
 			
 		constMapTransform->mat = matworld*matView * matprojection  ;
-	
+		
 
 		// *****************************************************
 		// DirectX毎フレーム処理 ここから
